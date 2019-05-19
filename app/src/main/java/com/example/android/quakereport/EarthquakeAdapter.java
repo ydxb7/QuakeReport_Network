@@ -15,10 +15,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-public class EarthquakeAddapter extends ArrayAdapter {
+public class EarthquakeAdapter extends ArrayAdapter {
     private int mResource;
 
-    public EarthquakeAddapter(Context context, int resource, ArrayList<Earthquake> objects) {
+    public EarthquakeAdapter(Context context, int resource, ArrayList<Earthquake> objects) {
         super(context, resource, objects);
         mResource = resource;
     }
