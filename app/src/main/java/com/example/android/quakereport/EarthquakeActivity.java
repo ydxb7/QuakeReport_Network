@@ -17,25 +17,48 @@ package com.example.android.quakereport;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 public class EarthquakeActivity extends AppCompatActivity {
 
     public static final String LOG_TAG = EarthquakeActivity.class.getName();
 
+    /** URL to query the USGS dataset for earthquake information */
+    private static final String USGS_REQUEST_URL =
+            "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventtype=earthquake&orderby=time&minmag=6&limit=10";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.earthquake_activity);
 
-        ArrayList<Earthquake> earthquakes = QueryUtils.extractEarthquakes();
 
+        // Kick off an {@link AsyncTask} to perform the network request
+        EarthquakeAsyncTask task = new EarthquakeAsyncTask();
+        task.execute(USGS_REQUEST_URL);
+
+    }
+
+    private void updateUi(ArrayList<Earthquake> earthquakes){
         // Find a reference to the {@link ListView} in the layout
         ListView earthquakeListView = (ListView) findViewById(R.id.list);
 
@@ -57,6 +80,41 @@ public class EarthquakeActivity extends AppCompatActivity {
                 }
             }
         });
+
+    }
+    private class EarthquakeAsyncTask extends AsyncTask<String, Void, ArrayList<Earthquake>> {
+
+        @Override
+        protected ArrayList<Earthquake> doInBackground(String... urls) {
+            // Perform HTTP request to the URL and receive a JSON response back
+            ArrayList<Earthquake> earthquakes = new ArrayList<Earthquake>();
+            if(urls.length < 1 || urls[0] == null){
+                return null;
+            }
+
+            for(int i = 0; i < urls.length; i++){
+                // Create URL object
+                URL url = QueryUtils.createUrl(urls[i]);
+                try {
+                    String jsonResponse = QueryUtils.makeHttpRequest(url);
+                    earthquakes.addAll(QueryUtils.extractEarthquakes(jsonResponse));
+                } catch (IOException e) {
+                    // TODO Handle the IOException
+                    Log.e(LOG_TAG, "Problem retrieving the earthquake JSON results.", e);
+                }
+            }
+            return earthquakes;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<Earthquake> earthquakes) {
+            if (earthquakes == null) {
+                return;
+            }
+            updateUi(earthquakes);
+        }
+
+
 
     }
 }
