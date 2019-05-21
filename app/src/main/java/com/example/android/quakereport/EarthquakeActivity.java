@@ -57,18 +57,61 @@ public class EarthquakeActivity extends AppCompatActivity
 
         // Find a reference to the {@link ListView} in the layout
         ListView earthquakeListView = (ListView) findViewById(R.id.list);
+        mEmptyStateTextView = (TextView) findViewById(R.id.empty_view);
+        earthquakeListView.setEmptyView(mEmptyStateTextView);
 
         mAdapter = new EarthquakeAdapter(this, new ArrayList<Earthquake>());
         // Set the adapter on the {@link ListView}
         // so the list can be populated in the user interface
         earthquakeListView.setAdapter(mAdapter);
-        // 引用 LoaderManager，以便与 loader 进行交互。
-        LoaderManager loaderManager = getLoaderManager();
 
-        // 初始化 loader。传递上面定义的整数 ID 常量并为为捆绑
-        // 传递 null。为 LoaderCallbacks 参数（由于
-        // 此活动实现了 LoaderCallbacks 接口而有效）传递此活动。
-        loaderManager.initLoader(EARTHQUAKE_LOADER_ID, null, this);
+
+        earthquakeListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // Find the current earthquake that was clicked on
+                Earthquake currentEarthquake = mAdapter.getItem(position);
+
+                // Convert the String URL into a URI object (to pass into the Intent constructor)
+                Uri earthquakeUri = Uri.parse(currentEarthquake.getUrl());
+
+                // Create a new intent to view the earthquake URI
+                Intent websiteIntent = new Intent(Intent.ACTION_VIEW, earthquakeUri);
+
+                // Send the intent to launch a new activity
+                if (websiteIntent.resolveActivity(getPackageManager()) != null) {
+                    startActivity(websiteIntent);
+                }
+            }
+        });
+
+        // Get a reference to the ConnectivityManager to check state of network connectivity
+        ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        // Get details on the currently active default data network
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+
+        // If there is a network connection, fetch data
+        if (networkInfo != null && networkInfo.isConnected()) {
+            // 引用 LoaderManager，以便与 loader 进行交互。
+            LoaderManager loaderManager = getLoaderManager();
+
+            // 初始化 loader。传递上面定义的整数 ID 常量并为为捆绑
+            // 传递 null。为 LoaderCallbacks 参数（由于
+            // 此活动实现了 LoaderCallbacks 接口而有效）传递此活动。
+            loaderManager.initLoader(EARTHQUAKE_LOADER_ID, null, this);
+        } else {
+            // Otherwise, display error
+            // First, hide loading indicator so error message will be visible
+            View loadingIndicator = findViewById(R.id.loading_indicator);
+            loadingIndicator.setVisibility(View.GONE);
+
+            // Update empty state with no connection error message
+            mEmptyStateTextView.setText(R.string.no_internet_connection);
+        }
+
+
+
     }
 
     @Override
@@ -80,6 +123,13 @@ public class EarthquakeActivity extends AppCompatActivity
 
     @Override
     public void onLoadFinished(@NonNull Loader<List<Earthquake>> loader, List<Earthquake> earthquakes) {
+        // Hide loading indicator because the data has been loaded
+        View loadingIndicator = findViewById(R.id.loading_indicator);
+        loadingIndicator.setVisibility(View.GONE);
+
+        // Set empty state text to display "No earthquakes found."
+        mEmptyStateTextView.setText(R.string.no_earthquakes);
+
         // 清除之前地震数据的适配器
         mAdapter.clear();
 
@@ -87,6 +137,7 @@ public class EarthquakeActivity extends AppCompatActivity
         // 数据集。这将触发 ListView 执行更新。
         if (earthquakes != null && !earthquakes.isEmpty()) {
             mAdapter.addAll(earthquakes);
+            mAdapter.notifyDataSetChanged();
         }
     }
 

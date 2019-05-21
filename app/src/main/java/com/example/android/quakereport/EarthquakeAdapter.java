@@ -89,7 +89,7 @@ public class EarthquakeAdapter extends ArrayAdapter<Earthquake> {
         time_text_view.setText(time);
 
         // set listener
-        listItemView.setOnClickListener(new ItemOnClickListener(currentEatrhquakeItem));
+//        listItemView.setOnClickListener(new ItemOnClickListener(currentEatrhquakeItem));
 
         return listItemView;
     }
