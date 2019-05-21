@@ -173,12 +173,14 @@ public class EarthquakeActivity extends AppCompatActivity
         mAdapter.clear();
     }
 
+    // 在menu bar上显示设置
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
 
+    // 如果设置被选中，可以用来跳到setting activity，并设置偏好
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
