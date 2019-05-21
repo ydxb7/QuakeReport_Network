@@ -118,6 +118,7 @@ public class EarthquakeActivity extends AppCompatActivity
         }
     }
 
+    // 根据偏好设置生成request，并生成loader
     @Override
     public Loader<List<Earthquake>> onCreateLoader(int i, Bundle bundle) {
         // 得到preference的最小震级
