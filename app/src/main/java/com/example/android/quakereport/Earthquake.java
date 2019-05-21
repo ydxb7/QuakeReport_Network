@@ -28,4 +28,9 @@ public class Earthquake {
     public String getUrl(){
         return mUrl;
     }
+
+    public String toString(){
+        return "Manitude: " + Double.toString(mMag) + "  Location: " + mLocation + "  Time: " + Long.toString(mTimeInMilliseconds)
+                + "  url: " + mUrl;
+    }
 }

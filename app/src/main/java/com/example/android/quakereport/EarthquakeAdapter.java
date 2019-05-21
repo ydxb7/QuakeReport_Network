@@ -1,7 +1,10 @@
 package com.example.android.quakereport;
 
+
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,26 +15,30 @@ import android.widget.TextView;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
-public class EarthquakeAdapter extends ArrayAdapter {
-    private int mResource;
+public class EarthquakeAdapter extends ArrayAdapter<Earthquake> {
+//    private int mResource;
+//    private List<Earthquake> mEarthquakes;
+    private String LOG_TAG = EarthquakeAdapter.class.getSimpleName();
 
-    public EarthquakeAdapter(Context context, int resource, ArrayList<Earthquake> objects) {
-        super(context, resource, objects);
-        mResource = resource;
+    public EarthquakeAdapter(Context context, List<Earthquake> earthquakes) {
+        super(context, 0);
+//        mEarthquakes = earthquakes;
     }
 
+    // according to current position to set views
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         View listItemView = convertView;
 
         if (listItemView == null) {
-            listItemView = LayoutInflater.from(getContext()).inflate(mResource, parent, false);
+            listItemView = LayoutInflater.from(getContext()).inflate(R.layout.list_item, parent, false);
         }
 
-        Earthquake currentEatrhquakeItem = (Earthquake) getItem(position);
+        // Find the earthquake at the given position in the list of earthquakes
+        Earthquake currentEatrhquakeItem = getItem(position);
 
         // show magnitude
         Double mag = currentEatrhquakeItem.getMag();
@@ -81,7 +88,26 @@ public class EarthquakeAdapter extends ArrayAdapter {
         String time = formatTime(dateObject);
         time_text_view.setText(time);
 
+        // set listener
+        listItemView.setOnClickListener(new ItemOnClickListener(currentEatrhquakeItem));
+
         return listItemView;
+    }
+
+    private class ItemOnClickListener implements View.OnClickListener {
+        private Earthquake mItem;
+        public ItemOnClickListener(Earthquake item){
+            mItem = item;
+        }
+
+        @Override
+        public void onClick(View v) {
+            Uri webpage = Uri.parse(mItem.getUrl());
+            Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
+            if (intent.resolveActivity(getContext().getPackageManager()) != null) {
+                getContext().startActivity(intent);
+            }
+        }
     }
 
     private String formatDate(Date dateObject) {
@@ -137,7 +163,12 @@ public class EarthquakeAdapter extends ArrayAdapter {
                 ans = ContextCompat.getColor(getContext(), R.color.magnitude10plus);
                 break;
         }
-        Log.v("EarthquakeAdapter", "mag = " + mag + "     int mag = " + magnitude);
+//        Log.v("EarthquakeAdapter", "mag = " + mag + "     int mag = " + magnitude);
         return ans;
     }
+
+//    public void setEarthquake(List<Earthquake> data) {
+//        mEarthquakes.addAll(data);
+//        notifyDataSetChanged();
+//    }
 }

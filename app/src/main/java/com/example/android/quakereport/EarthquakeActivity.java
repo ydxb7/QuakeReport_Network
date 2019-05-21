@@ -15,106 +15,85 @@
  */
 package com.example.android.quakereport;
 
+import android.app.LoaderManager;
+import android.app.LoaderManager.LoaderCallbacks;
+import android.content.Context;
 import android.content.Intent;
+import android.content.Loader;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.TextView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 
-public class EarthquakeActivity extends AppCompatActivity {
-
+public class EarthquakeActivity extends AppCompatActivity
+        implements LoaderCallbacks<List<Earthquake>> {
     public static final String LOG_TAG = EarthquakeActivity.class.getName();
+    private EarthquakeAdapter mAdapter;
+    /**
+     * Constant value for the earthquake loader ID. We can choose any integer.
+     * This really only comes into play if you're using multiple loaders.
+     */
+    private static final int EARTHQUAKE_LOADER_ID = 1;
 
     /** URL to query the USGS dataset for earthquake information */
     private static final String USGS_REQUEST_URL =
             "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventtype=earthquake&orderby=time&minmag=6&limit=10";
+
+    /** TextView that is displayed when the list is empty */
+    private TextView mEmptyStateTextView;
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.earthquake_activity);
 
-
-        // Kick off an {@link AsyncTask} to perform the network request
-        EarthquakeAsyncTask task = new EarthquakeAsyncTask();
-        task.execute(USGS_REQUEST_URL);
-
-    }
-
-    private void updateUi(ArrayList<Earthquake> earthquakes){
         // Find a reference to the {@link ListView} in the layout
         ListView earthquakeListView = (ListView) findViewById(R.id.list);
 
-        // Create a new {@link ArrayAdapter} of earthquakes
-        final EarthquakeAdapter adapter = new EarthquakeAdapter(this, R.layout.list_item, earthquakes);
-
+        mAdapter = new EarthquakeAdapter(this, new ArrayList<Earthquake>());
         // Set the adapter on the {@link ListView}
         // so the list can be populated in the user interface
-        earthquakeListView.setAdapter(adapter);
+        earthquakeListView.setAdapter(mAdapter);
+        // 引用 LoaderManager，以便与 loader 进行交互。
+        LoaderManager loaderManager = getLoaderManager();
 
-        earthquakeListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Earthquake currentEatrhquakeItem = (Earthquake) adapter.getItem(position);
-                Uri webpage = Uri.parse(currentEatrhquakeItem.getUrl());
-                Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
-                if (intent.resolveActivity(getPackageManager()) != null) {
-                    startActivity(intent);
-                }
-            }
-        });
-
+        // 初始化 loader。传递上面定义的整数 ID 常量并为为捆绑
+        // 传递 null。为 LoaderCallbacks 参数（由于
+        // 此活动实现了 LoaderCallbacks 接口而有效）传递此活动。
+        loaderManager.initLoader(EARTHQUAKE_LOADER_ID, null, this);
     }
-    private class EarthquakeAsyncTask extends AsyncTask<String, Void, ArrayList<Earthquake>> {
 
-        @Override
-        protected ArrayList<Earthquake> doInBackground(String... urls) {
-            // Perform HTTP request to the URL and receive a JSON response back
-            ArrayList<Earthquake> earthquakes = new ArrayList<Earthquake>();
-            if(urls.length < 1 || urls[0] == null){
-                return null;
-            }
-
-            for(int i = 0; i < urls.length; i++){
-                // Create URL object
-                URL url = QueryUtils.createUrl(urls[i]);
-                try {
-                    String jsonResponse = QueryUtils.makeHttpRequest(url);
-                    earthquakes.addAll(QueryUtils.extractEarthquakes(jsonResponse));
-                } catch (IOException e) {
-                    // TODO Handle the IOException
-                    Log.e(LOG_TAG, "Problem retrieving the earthquake JSON results.", e);
-                }
-            }
-            return earthquakes;
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<Earthquake> earthquakes) {
-            if (earthquakes == null) {
-                return;
-            }
-            updateUi(earthquakes);
-        }
-
-
-
+    @Override
+    public Loader<List<Earthquake>> onCreateLoader(int i, Bundle bundle) {
+        // Create a new loader for the given URL
+        return new EarthquakeLoader(this, USGS_REQUEST_URL);
     }
+
+
+    @Override
+    public void onLoadFinished(@NonNull Loader<List<Earthquake>> loader, List<Earthquake> earthquakes) {
+        // 清除之前地震数据的适配器
+        mAdapter.clear();
+
+        // 如果存在 {@link Earthquake} 的有效列表，则将其添加到适配器的
+        // 数据集。这将触发 ListView 执行更新。
+        if (earthquakes != null && !earthquakes.isEmpty()) {
+            mAdapter.addAll(earthquakes);
+        }
+    }
+
+    @Override
+    public void onLoaderReset( Loader<List<Earthquake>> loader) {
+        // 重置 Loader，以便能够清除现有数据。
+        mAdapter.clear();
+    }
+
 }
